@@ -1,0 +1,31 @@
+{
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#a61f1b",
+    "activityBar.background": "#a61f1b",
+    "activityBar.foreground": "#e7e7e7",
+    "activityBar.inactiveForeground": "#e7e7e799",
+    "activityBarBadge.background": "#1ba41f",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "commandCenter.border": "#e7e7e799",
+    "sash.hoverBorder": "#a61f1b",
+    "statusBar.background": "#7a1714",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#a61f1b",
+    "statusBarItem.remoteBackground": "#7a1714",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "titleBar.activeBackground": "#7a1714",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#7a171499",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.color": "#7a1714",
+  "pylint.args": [
+    "--disable=missing-class-docstring",
+    "--disable=missing-function-docstring",
+    "--disable=missing-module-docstring",
+    "--disable=pointless-string-statement",
+    "--disable=invalid-name",
+    "--diable=redefining-outer-name",
+    "--max-line-length=80"
+  ]
+}
