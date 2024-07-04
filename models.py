@@ -12,12 +12,13 @@ from sqlalchemy import (
 from database import Base
 
 
-class Departments(Base):
+class Department(Base):
     __tablename__ = "departments"
 
     id = Column(Integer, primary_key=True, index=True)
     department_id = Column(Integer, unique=True, index=True)
     name = Column(String)
+    rank = Column(Integer)
 
     @computed_field
     @cached_property
@@ -25,12 +26,13 @@ class Departments(Base):
         return f"costco/departments/{self.department_id}"
 
 
-class Aisles(Base):
+class Aisle(Base):
     __tablename__ = "aisles"
 
     id = Column(Integer, primary_key=True, index=True)
     aisle_id = Column(Integer, unique=True, index=True)
     name = Column(String)
+    rank = Column(Integer)
     # department: Department = ForeignKey()
     department_id = Column(
         "department_id",
@@ -45,7 +47,7 @@ class Aisles(Base):
         return f"costco/departments/{self.department_id}/aisles/{self.aisle_id}"
 
 
-class Items(Base):
+class Product(Base):
     """
     "product_id": "15218037",
     "name": "Organic Blackberries, 12 oz",
@@ -55,15 +57,19 @@ class Items(Base):
     "alt": "image of Organic Blackberries, 12 oz",
     """
 
-    __tablename__ = "items"
+    __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True)
+    rank = Column(Integer)
     product_id = Column(Integer, unique=True)
-    quantity = Column(String)
+    # quantity = Column(String)
+    size = Column(String)
     src = Column(String)
     alt = Column(String)
     price = Column(String)
+    affix = Column(String)
+    price_per = Column(String)
     aisle_id = Column(
         "aisle_id", Integer(), ForeignKey("aisles.aisle_id"), nullable=False
     )
@@ -80,22 +86,22 @@ class SectionType(str, enum.Enum):
     often_bought_with = "Often Bought With"
 
 
-class Sections(Base):
+class Section(Base):
     __tablename__ = "sections"
 
     # id = Column(Integer, primary_key=True, index=True)
     section_type = Column("section_type", Enum(SectionType), primary_key=True)
-    parent_item_id = Column(
-        "parent_item_id",
+    parent_product_id = Column(
+        "parent_product_id",
         Integer(),
-        ForeignKey("items.product_id"),
+        ForeignKey("products.product_id"),
         nullable=False,
         primary_key=True,
     )
-    child_item_id = Column(
-        "child_item_id",
+    child_product_id = Column(
+        "child_product_id",
         Integer(),
-        ForeignKey("items.product_id"),
+        ForeignKey("products.product_id"),
         nullable=False,
         primary_key=True,
     )
