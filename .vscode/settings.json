@@ -27,5 +27,9 @@
     "--disable=invalid-name",
     "--diable=redefining-outer-name",
     "--max-line-length=80"
+  ],
+  "cSpell.words": [
+    "joinedload",
+    "noload"
   ]
 }

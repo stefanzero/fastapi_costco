@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Enum,
 )
+from sqlalchemy.orm import relationship
 
 from database import Base
 
@@ -19,6 +20,10 @@ class Department(Base):
     department_id = Column(Integer, unique=True, index=True)
     name = Column(String)
     rank = Column(Integer)
+    aisles = relationship("Aisle")
+
+    def __repr__(self):
+        return f"Department: {self.name}, department_id: {self.department_id}"
 
     @computed_field
     @cached_property
@@ -33,13 +38,17 @@ class Aisle(Base):
     aisle_id = Column(Integer, unique=True, index=True)
     name = Column(String)
     rank = Column(Integer)
-    # department: Department = ForeignKey()
     department_id = Column(
         "department_id",
         Integer(),
         ForeignKey("departments.department_id"),
         nullable=False,
     )
+    department = relationship(Department, back_populates="aisles")
+    products = relationship("Product")
+
+    def __repr__(self):
+        return f"Aisle: {self.name}, aisle_id: {self.aisle_id}"
 
     @computed_field
     @cached_property
@@ -73,6 +82,10 @@ class Product(Base):
     aisle_id = Column(
         "aisle_id", Integer(), ForeignKey("aisles.aisle_id"), nullable=False
     )
+    aisle = relationship(Aisle, back_populates="products")
+
+    def __repr__(self):
+        return f"Product: {self.name}, product_id: {self.product_id}"
 
     @computed_field
     @cached_property

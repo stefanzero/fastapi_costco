@@ -5,7 +5,6 @@ from sqlalchemy import select
 
 # from functools import reduce
 from box import Box
-from fastapi.background import P
 
 from database import Session
 from models import Aisle, Department, Product, Section, SectionType
