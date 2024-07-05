@@ -43,10 +43,14 @@ async def read_products(db: db_dependency):
 
 
 @router.get("/{product_id}", status_code=status.HTTP_200_OK)
-async def read_product(db: db_dependency, product_id: int = Path(gt=0)):
+async def read_product(
+    db: db_dependency, product_id: int = Path(gt=0), with_sections: bool = False
+):
     product_model = db.query(Product).filter(Product.product_id == product_id).first()
     if product_model is None:
         raise HTTPException(status_code=404, detail="Product not found.")
+    product_model.href
+    product_model.add_sections()
     return product_model
 
 
