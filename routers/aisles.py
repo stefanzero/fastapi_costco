@@ -26,6 +26,11 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 
 
+def add_href(models: list[BaseModel]) -> None:
+    for model in models:
+        model.href
+
+
 class AisleRequest(BaseModel):
     name: str = Field()
     product_id: int = Field()
@@ -34,8 +39,10 @@ class AisleRequest(BaseModel):
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
-async def read_items(db: db_dependency):
-    return db.query(Aisle).all()
+async def read_aisles(db: db_dependency):
+    aisles = db.query(Aisle).all()
+    add_href(aisles)
+    return aisles
 
 
 @router.get("/{aisle_id}", status_code=status.HTTP_200_OK)
@@ -52,11 +59,19 @@ async def read_aisle(
     else:
         aisle_model = (
             db.query(Aisle)
-            # .options(noload("*"))
-            .filter(Aisle.aisle_id == aisle_id).first()
+            .options(noload("*"))
+            .filter(Aisle.aisle_id == aisle_id)
+            .first()
         )
+        if hasattr(aisle_model, "products"):
+            delattr(aisle_model, "products")
     if aisle_model is None:
         raise HTTPException(status_code=404, detail="Aisle not found.")
+    aisle_model.href
+    if hasattr(aisle_model, "products"):
+        products: list[Product] = aisle_model.products
+        for product in products:
+            product.remove_section_relationships()
     return aisle_model
 
 
@@ -65,6 +80,7 @@ async def read_aisles_by_department(db: db_dependency, department_id: int = Path
     aisles = db.query(Aisle).filter(Aisle.department_id == department_id).all()
     if not len(aisles):
         raise HTTPException(status_code=404, detail="Department not found.")
+    add_href(aisles)
     return aisles
 
 
@@ -98,4 +114,5 @@ async def delete_aisle(db: db_dependency, aisle_id: int):
     aisle_model = db.query(Aisle).filter(Aisle.aisle_id == aisle_id).first()
     if aisle_model is None:
         raise HTTPException(status_code=404, detail="Aisle not found.")
-    db.query(Aisle).filter(Aisle.aisle_id == aisle_id).first().delete()
+    db.query(Aisle).filter(Aisle.aisle_id == aisle_id).delete()
+    db.commit()

@@ -3,8 +3,7 @@ from fastapi import FastAPI
 from models import Base
 from database import engine
 
-# from .routers import auth, todos, admin, users
-from routers import products, aisles, departments
+from routers import products, aisles, departments, sections
 
 app = FastAPI()
 
@@ -20,6 +19,7 @@ def health_check():
 app.include_router(products.router)
 app.include_router(aisles.router)
 app.include_router(departments.router)
+app.include_router(sections.router)
 # app.include_router(admin.router)
 # app.include_router(users.router)
 

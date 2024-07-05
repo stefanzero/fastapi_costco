@@ -13,6 +13,7 @@ from sqlalchemy.orm import relationship
 from database import Base
 
 
+@enum.unique
 class SectionType(str, enum.Enum):
     featured_products = "Featured Products"
     related_items = "Related Items"
@@ -141,12 +142,15 @@ class Product(Base):
             ],
         }
 
-    def add_sections(self):
+    def add_sections(self) -> None:
         """
         Cache the sections dictionary and remove the raw Section relationship
         from the object
         """
         self.sections
+        self.remove_section_relationships()
+
+    def remove_section_relationships(self) -> None:
         for member in SectionType:
             name = member.name
             if name in self.__dict__:

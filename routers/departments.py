@@ -1,9 +1,9 @@
 from typing import Annotated
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, noload
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from models import Aisle, Department
+from models import Aisle, Department, Product
 from database import SessionLocal
 
 # from .auth import get_current_user
@@ -26,6 +26,11 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 
 
+def add_href(models: list[BaseModel]) -> None:
+    for model in models:
+        model.href
+
+
 class DepartmentRequest(BaseModel):
     name: str = Field()
     product_id: int = Field()
@@ -34,8 +39,10 @@ class DepartmentRequest(BaseModel):
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
-async def read_items(db: db_dependency):
-    return db.query(Department).all()
+async def read_departments(db: db_dependency):
+    departments = db.query(Department).all()
+    add_href(departments)
+    return departments
 
 
 @router.get("/{department_id}", status_code=status.HTTP_200_OK)
@@ -43,9 +50,9 @@ async def read_department(
     db: db_dependency,
     department_id: int = Path(gt=0),
     with_aisles: bool = False,
-    with_products: bool = False,
+    with_aisles_and_products: bool = False,
 ):
-    if with_aisles and with_products:
+    if with_aisles_and_products:
         department_model = (
             db.query(Department)
             .options(joinedload("*"))
@@ -62,11 +69,27 @@ async def read_department(
     else:
         department_model = (
             db.query(Department)
-            # .options(noload("*"))
-            .filter(Department.department_id == department_id).first()
+            .options(noload("*"))
+            .filter(Department.department_id == department_id)
+            .first()
         )
+        if hasattr(department_model, "aisles"):
+            delattr(department_model, "aisles")
     if department_model is None:
         raise HTTPException(status_code=404, detail="Department not found.")
+    department_model.href
+    if hasattr(department_model, "aisles"):
+        aisles: list[Aisle] = department_model.aisles
+        for aisle in aisles:
+            aisle.href
+            if hasattr(aisle, "products"):
+                if not with_aisles_and_products:
+                    delattr(aisle, "products")
+                else:
+                    products: list[Product] = aisle.products
+                    for product in products:
+                        product.href
+                        product.remove_section_relationships()
     return department_model
 
 
@@ -104,6 +127,5 @@ async def delete_department(db: db_dependency, department_id: int):
     )
     if department_model is None:
         raise HTTPException(status_code=404, detail="Department not found.")
-    db.query(Department).filter(
-        Department.department_id == department_id
-    ).first().delete()
+    db.query(Department).filter(Department.department_id == department_id).delete()
+    db.commit()

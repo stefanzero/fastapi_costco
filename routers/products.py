@@ -30,11 +30,11 @@ class ProductRequest(BaseModel):
     name: str = Field()
     product_id: int = Field()
     rank: int = Field()
-    quantity: str = Field()
     href: str = Field()
     src: str = Field()
     alt: str = Field()
     price: str = Field()
+    aisle_id: int = Field()
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
@@ -50,7 +50,10 @@ async def read_product(
     if product_model is None:
         raise HTTPException(status_code=404, detail="Product not found.")
     product_model.href
-    product_model.add_sections()
+    if not with_sections:
+        product_model.remove_section_relationships()
+    else:
+        product_model.add_sections()
     return product_model
 
 
@@ -107,4 +110,5 @@ async def delete_product(db: db_dependency, product_id: int):
     product_model = db.query(Product).filter(Product.product_id == product_id).first()
     if product_model is None:
         raise HTTPException(status_code=404, detail="Product not found.")
-    db.query(Product).filter(Product.product_id == product_id).first().delete()
+    db.query(Product).filter(Product.product_id == product_id).delete()
+    db.commit()
