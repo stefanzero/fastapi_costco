@@ -32,10 +32,9 @@ def add_href(models: list[BaseModel]) -> None:
 
 
 class DepartmentRequest(BaseModel):
-    name: str = Field()
-    product_id: int = Field()
-    rank: int = Field()
     department_id: int = Field()
+    name: str = Field()
+    rank: int = Field()
 
 
 @router.get("/", status_code=status.HTTP_200_OK)

@@ -64,22 +64,12 @@ class Aisle(Base):
 
 
 class Product(Base):
-    """
-    "product_id": "15218037",
-    "name": "Organic Blackberries, 12 oz",
-    "price": "$8.70\u00a0/each",
-    "quantity": "12 oz\u00a0",
-    "src": "https://d2d8wwwkmhfcva.cloudfront.net/1200x/filters:fill(FFF,true):format(jpg)/d2lnr5mha7bycj.cloudfront.net/product-image/file/large_91f25f39-b830-44a0-9224-f271c484af59.jpeg",
-    "alt": "image of Organic Blackberries, 12 oz",
-    """
-
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True)
     rank = Column(Integer)
     product_id = Column(Integer, unique=True)
-    # quantity = Column(String)
     size = Column(String)
     src = Column(String)
     alt = Column(String)
@@ -178,22 +168,3 @@ class Section(Base):
     )
     parent = relationship(Product, primaryjoin=Product.product_id == parent_product_id)
     child = relationship(Product, primaryjoin=Product.product_id == child_product_id)
-    # __table_args__ = (
-    #     UniqueConstraint(
-    #         "section_type", "parent_item_id", name="section_type_parent_unique"
-    #     ),
-    # )
-
-
-# class BreadCrumbs(Base):
-#     __tablename__ = "breadcrumbs"
-
-"""
-Section
-
-section_type enum
-parent_item_id
-child_item_id
-
-section_type, parent_item_id index
-"""

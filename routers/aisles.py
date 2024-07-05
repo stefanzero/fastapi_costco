@@ -33,7 +33,7 @@ def add_href(models: list[BaseModel]) -> None:
 
 class AisleRequest(BaseModel):
     name: str = Field()
-    product_id: int = Field()
+    aisle_id: int = Field()
     rank: int = Field()
     department_id: int = Field()
 

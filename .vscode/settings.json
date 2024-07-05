@@ -29,9 +29,11 @@
     "--max-line-length=80"
   ],
   "cSpell.words": [
+    "costco",
     "joinedload",
     "noload",
     "primaryjoin",
+    "product_details",
     "pydantic",
     "uvicorn"
   ]

@@ -1,11 +1,15 @@
 import json
 import os
 import re
-from sqlalchemy import select
 
-# from functools import reduce
 from box import Box
 
+"""
+https://pypi.org/project/python-box/
+Box is a subclass of dict which overrides some base functionality 
+to make sure everything stored in the dict can be accessed as an 
+attribute or key value.
+"""
 from database import Session
 from models import Aisle, Department, Product, Section, SectionType
 
@@ -13,57 +17,59 @@ root_path = os.path.dirname(__file__)
 
 data_cache = {}
 
+""" 
+These data files were "scraped" from the Instacart web site using
+- selenium webdriver
+- BeautifulSoup HTML parser
+"""
+DATA_FILES = Box(
+    {
+        #
+        costco: "costco.json",
+        product_details: "product_details.json",
+    }
+)
+"""
+costco.json contains data for
+- departments 
+- aisles
+- products
 
-def get_store():
-    if "store" in data_cache:
-        return data_cache["store"]
-    file_name = os.path.join(root_path, "store.json")
+product_details.json contains data for
+- product.alt (for image tag)
+- product.price_per
+- product.sections
+  - featured_products
+  - related_items
+  - often_bought_with
+"""
+
+
+def get_costco() -> Box:
+    if "costco" in data_cache:
+        return data_cache["costco"]
+    file_name = os.path.join(root_path, "costco.json")
     with open(file_name) as file:
         file_contents = file.read()
-        store = json.loads(file_contents)
-    data_cache["store"] = Box(store)
-    return data_cache["store"]
+        costco = json.loads(file_contents)
+    data_cache["costco"] = Box(costco)
+    return data_cache["costco"]
 
 
-def get_departments_with_rank():
+def get_departments_with_rank() -> Box:
     if "departments_with_rank" in data_cache:
         return data_cache["departments_with_rank"]
-    store = get_store()
-    departments = store.departments
-    for rank, department_id in enumerate(store.order):
+    costco = get_costco()
+    departments = costco.departments
+    for rank, department_id in enumerate(costco.order):
         department = departments[str(department_id)]
         department.rank = rank
-    department_list = [departments[str(id)] for id in store.order]
+    department_list = [departments[str(id)] for id in costco.order]
     data_cache["departments_with_rank"] = department_list
     return data_cache["departments_with_rank"]
 
 
-def get_departments():
-    if "departments" in data_cache:
-        return data_cache["departments"]
-    file_name = os.path.join(root_path, "departments.json")
-    with open(file_name) as file:
-        file_contents = file.read()
-        departments = json.loads(file_contents)
-    data_cache["departments"] = departments
-    return data_cache["departments"]
-
-
-# def get_aisles():
-#     if "aisles" in data_cache:
-#         return data_cache["aisles"]
-#     departments = get_departments()
-#     aisles_map = {}
-#     for department_id, department in departments.items():
-#         aisles = department["aisles"]
-#         for aisle_id, aisle in aisles.items():
-#             aisle["department_id"] = department_id
-#             aisles_map[aisle_id] = aisle
-#     data_cache["aisles"] = aisles_map
-#     return aisles_map
-
-
-def get_aisles_with_rank():
+def get_aisles_with_rank() -> dict[str, Box]:
     departments = get_departments_with_rank()
     aisles_map = {}
     for department in departments:
@@ -77,8 +83,7 @@ def get_aisles_with_rank():
     return aisles_map
 
 
-# this will still be needed to load "alt", "price_per" and "quantity"
-def get_products_details():
+def get_products_details() -> Box:
     if "products_details" in data_cache:
         return data_cache["products_details"]
     file_name = os.path.join(root_path, "products_details.json")
@@ -89,7 +94,7 @@ def get_products_details():
     return data_cache["products_details"]
 
 
-def get_products_with_rank():
+def get_products_with_rank() -> dict[str, Box]:
     if "items_with_rank" in data_cache:
         return data_cache["items_with_rank"]
     aisles = get_aisles_with_rank()
@@ -115,8 +120,7 @@ def get_aisle_from_breadcrumbs(breadcrumbs: list[dict]):
         return match[0]
 
 
-def insert_department(department: Box):
-    # department = Box(department_dict)
+def insert_department(department: Box) -> None:
     values = {
         "department_id": department.id,
         "name": department.name,
@@ -131,7 +135,7 @@ def insert_department(department: Box):
             print(e)
 
 
-def insert_aisle(aisle: Box):
+def insert_aisle(aisle: Box) -> None:
     values = {
         "aisle_id": aisle.id,
         "name": aisle.name,
@@ -147,32 +151,7 @@ def insert_aisle(aisle: Box):
             print(e)
 
 
-# def insert_item(item_dict):
-#     item = Box(item_dict)
-#     aisle_id = get_aisle_from_breadcrumbs(item.breadcrumbs)
-#     if not aisle_id:
-#         print(f"item {item.product_id} has no aisle")
-#         return
-#     print(item.name)
-#     values = {
-#         "product_id": item.product_id,
-#         "name": item.name,
-#         "price": item.price,
-#         "src": item.src,
-#         "alt": item.alt,
-#         "quantity": item.quantity,
-#         "aisle_id": aisle_id,
-#     }
-#     with Session() as db:
-#         try:
-#             obj = Items(**values)
-#             db.add(obj)
-#             db.commit()
-#         except Exception as e:
-#             print(e)
-
-
-def insert_product(product: Box):
+def insert_product(product: Box) -> None:
     print(product.name)
     values = {
         "affix": product.affix,
@@ -193,7 +172,7 @@ def insert_product(product: Box):
             print(e)
 
 
-def update_product_details(product_details: Box):
+def update_product_details(product_details: Box) -> None:
     with Session() as db:
         try:
             product_id = product_details.product_id
@@ -202,7 +181,6 @@ def update_product_details(product_details: Box):
                 print(f"Could not find product {product_id}")
                 return
             obj.alt = product_details.alt
-            # obj.quantity = product_details.quantity
             obj.price_per = product_details.price
             db.add(obj)
             db.commit()
@@ -239,7 +217,7 @@ def insert_sections(product: Box):
                         print(e)
 
 
-def insert_all_departments():
+def insert_all_departments() -> None:
     departments = get_departments_with_rank()
     for department in departments:
         # print(department["name"])
@@ -247,34 +225,34 @@ def insert_all_departments():
         insert_department(department=department)
 
 
-def insert_all_aisles_with_rank():
+def insert_all_aisles_with_rank() -> None:
     aisles = get_aisles_with_rank()
     for aisle in aisles.values():
         print(aisle["name"])
         insert_aisle(aisle=aisle)
 
 
-def insert_all_products():
+def insert_all_products() -> None:
     products = get_products_with_rank()
     for product in products.values():
         print(product["name"])
         insert_product(product=product)
 
 
-def update_all_product_details():
+def update_all_product_details() -> None:
     product_details = get_products_details()
     for product_detail in product_details.values():
         update_product_details(product_detail)
 
 
-def insert_all_sections():
+def insert_all_sections() -> None:
     products = get_products_details()
     for product in products.values():
         # print(item["name"])
         insert_sections(product=product)
 
 
-def insert_section_by_index(index: int):
+def insert_section_by_index(index: int) -> None:
     products = get_products_details()
     keys = list(products.keys())
     product = products[keys[index]]
