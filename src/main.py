@@ -1,9 +1,9 @@
 import uvicorn
 from fastapi import FastAPI
-from models import Base
-from database import engine
+from src.models import Base
+from src.database import engine
 
-from routers import products, aisles, departments, sections
+from .routers import products, aisles, departments, sections
 
 app = FastAPI()
 

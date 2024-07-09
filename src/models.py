@@ -8,9 +8,11 @@ from sqlalchemy import (
     ForeignKey,
     Enum,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from box import BoxList
+from typing import Self
 
-from database import Base
+from .database import Base
 
 
 @enum.unique
@@ -23,11 +25,16 @@ class SectionType(str, enum.Enum):
 class Department(Base):
     __tablename__ = "departments"
 
-    id = Column(Integer, primary_key=True, index=True)
-    department_id = Column(Integer, unique=True, index=True)
-    name = Column(String)
-    rank = Column(Integer)
-    aisles = relationship("Aisle")
+    # id = Column(Integer, primary_key=True, index=True)
+    # department_id = Column(Integer, unique=True, index=True)
+    # name = Column(String)
+    # rank = Column(Integer)
+    # aisles = relationship("Aisle", back_populates="department")
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    department_id: Mapped[int] = mapped_column(unique=True, index=True)
+    name: Mapped[str] = mapped_column()
+    rank: Mapped[int] = mapped_column()
+    aisles = relationship("Aisle", back_populates="department")
 
     def __repr__(self):
         return f"Department: {self.name}, department_id: {self.department_id}"
@@ -41,11 +48,11 @@ class Department(Base):
 class Aisle(Base):
     __tablename__ = "aisles"
 
-    id = Column(Integer, primary_key=True, index=True)
-    aisle_id = Column(Integer, unique=True, index=True)
-    name = Column(String)
-    rank = Column(Integer)
-    department_id = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    aisle_id: Mapped[int] = mapped_column(Integer, unique=True, index=True)
+    name: Mapped[str] = mapped_column(String)
+    rank: Mapped[str] = mapped_column(Integer)
+    department_id: Mapped[int] = mapped_column(
         "department_id",
         Integer(),
         ForeignKey("departments.department_id"),
@@ -66,17 +73,17 @@ class Aisle(Base):
 class Product(Base):
     __tablename__ = "products"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True)
-    rank = Column(Integer)
-    product_id = Column(Integer, unique=True)
-    size = Column(String)
-    src = Column(String)
-    alt = Column(String)
-    price = Column(String)
-    affix = Column(String)
-    price_per = Column(String)
-    aisle_id = Column(
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(unique=True)
+    rank: Mapped[int] = mapped_column()
+    product_id: Mapped[int] = mapped_column(unique=True)
+    size: Mapped[str] = mapped_column()
+    src: Mapped[str] = mapped_column()
+    alt: Mapped[str] = mapped_column()
+    price: Mapped[str] = mapped_column()
+    affix: Mapped[str] = mapped_column()
+    price_per: Mapped[str] = mapped_column()
+    aisle_id: Mapped[str] = mapped_column(
         "aisle_id", Integer(), ForeignKey("aisles.aisle_id"), nullable=False
     )
     aisle = relationship(Aisle, back_populates="products")
@@ -86,6 +93,7 @@ class Product(Base):
                 Section.parent_product_id == Product.product_id,\
                 Section.section_type == 'featured_products',\
             )",
+        viewonly=True,
     )
     related_items = relationship(
         "Section",
@@ -93,6 +101,7 @@ class Product(Base):
                 Section.parent_product_id == Product.product_id,\
                 Section.section_type == 'related_items',\
             )",
+        viewonly=True,
     )
     often_bought_with = relationship(
         "Section",
@@ -100,6 +109,7 @@ class Product(Base):
                 Section.parent_product_id == Product.product_id,\
                 Section.section_type == 'often_bought_with',\
             )",
+        viewonly=True,
     )
 
     def __repr__(self):
@@ -119,6 +129,8 @@ class Product(Base):
            value = list of products
 
         Use "child" relationship in Section to hydrate the Product
+
+        Note: makes a separate query for every child
         """
         return {
             "featured_products": [
@@ -151,15 +163,17 @@ class Section(Base):
     __tablename__ = "sections"
 
     # id = Column(Integer, primary_key=True, index=True)
-    section_type = Column("section_type", Enum(SectionType), primary_key=True)
-    parent_product_id = Column(
+    section_type: Mapped[SectionType] = mapped_column(
+        "section_type", Enum(SectionType), primary_key=True
+    )
+    parent_product_id: Mapped[int] = mapped_column(
         "parent_product_id",
         Integer(),
         ForeignKey("products.product_id"),
         nullable=False,
         primary_key=True,
     )
-    child_product_id = Column(
+    child_product_id: Mapped[int] = mapped_column(
         "child_product_id",
         Integer(),
         ForeignKey("products.product_id"),

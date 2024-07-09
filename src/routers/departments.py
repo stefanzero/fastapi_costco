@@ -3,8 +3,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload, noload
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from models import Aisle, Department, Product
-from database import SessionLocal
+from src.models import Aisle, Department, Product
+from src.database import SessionLocal, get_db
 
 # from .auth import get_current_user
 
@@ -15,12 +15,12 @@ router = APIRouter(
 )
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
 
 
 db_dependency = Annotated[Session, Depends(get_db)]
@@ -97,6 +97,7 @@ async def create_department(db: db_dependency, department_request: DepartmentReq
     department_model = Department(**department_request.model_dump())
     db.add(department_model)
     db.commit()
+    db.refresh(department_model)
 
 
 @router.put("/{department_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -117,6 +118,7 @@ async def update_department(
 
     db.add(department_model)
     db.commit()
+    db.refresh(department_model)
 
 
 @router.delete("/{department_id}", status_code=status.HTTP_204_NO_CONTENT)

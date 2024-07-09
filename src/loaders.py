@@ -1,6 +1,17 @@
-from database import engine
-from models import Base, Department, Aisle, Product, Section
-from data import load_data
+""" 
+Usage:
+
+In a Unix terminal window, cd to parent directory of the "src" directory.
+
+# activate virtual env
+pipenv shell
+# run as a module
+python -m src.loaders
+"""
+
+from src.database import engine
+from src.models import Base, Department, Aisle, Product, Section
+from src.data import load_data
 
 
 def create_database():
@@ -34,12 +45,12 @@ def create_database():
 
 
 if __name__ == "__main__":
-    create_database()
-    # load_data.get_departments_with_rank()
+    # create_database()
+    print(load_data.get_departments_with_rank())
     # load_data.insert_all_departments()
     # load_data.insert_all_aisles_with_rank()
     # load_data.insert_item_by_index(0)
     # load_data.insert_all_products()
     # load_data.update_all_product_details()
     # load_data.insert_section_by_index(0)
-    load_data.insert_all_sections()
+    # load_data.insert_all_sections()

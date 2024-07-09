@@ -10,8 +10,8 @@ Box is a subclass of dict which overrides some base functionality
 to make sure everything stored in the dict can be accessed as an 
 attribute or key value.
 """
-from database import Session
-from models import Aisle, Department, Product, Section, SectionType
+from src.database import Session
+from src.models import Aisle, Department, Product, Section, SectionType
 
 root_path = os.path.dirname(__file__)
 
@@ -25,8 +25,8 @@ These data files were "scraped" from the Instacart web site using
 DATA_FILES = Box(
     {
         #
-        costco: "costco.json",
-        product_details: "product_details.json",
+        "costco": "costco.json",
+        "product_details": "product_details.json",
     }
 )
 """

@@ -5,8 +5,8 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.orm import Session, joinedload
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from models import SectionType, Section, Product
-from database import SessionLocal
+from src.models import SectionType, Section, Product
+from src.database import SessionLocal
 
 # from .auth import get_current_user
 

@@ -3,14 +3,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, noload, joinedload
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from models import Product, Aisle
-from database import SessionLocal
+from src.models import Product, Aisle
+from src.database import SessionLocal
 
 # from .auth import get_current_user
 
 router = APIRouter(
     #
-    prefix="/aisles ",
+    prefix="/aisles",
     tags=["aisles"],
 )
 
@@ -52,7 +52,9 @@ async def read_aisle(
     if with_products:
         aisle_model = (
             db.query(Aisle)
-            .options(joinedload("*"))
+            .options(joinedload(Aisle.products).noload(Product.featured_products))
+            .options(joinedload(Aisle.products).noload(Product.related_items))
+            .options(joinedload(Aisle.products).noload(Product.often_bought_with))
             .filter(Aisle.aisle_id == aisle_id)
             .first()
         )
@@ -89,6 +91,7 @@ async def create_aisle(db: db_dependency, aisle_request: AisleRequest):
     aisle_model = Aisle(**aisle_request.model_dump())
     db.add(aisle_model)
     db.commit()
+    db.refresh(aisle_model)
 
 
 @router.put("/{aisle_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -107,6 +110,7 @@ async def update_aisle(
 
     db.add(aisle_model)
     db.commit()
+    db.refresh(aisle_model)
 
 
 @router.delete("/{aisle_id}", status_code=status.HTTP_204_NO_CONTENT)
