@@ -1,5 +1,6 @@
 from typing import Annotated, Self
 from pydantic import BaseModel, Field, field_validator, model_validator
+from box import Box
 
 # from sqlalchemy import Enum
 from sqlalchemy.orm import Session, joinedload
@@ -157,3 +158,29 @@ async def delete_section(
         .delete()
     )
     db.commit()
+
+
+@router.get(
+    "/by_parent_product_id/{parent_product_id}",
+    status_code=status.HTTP_200_OK,
+)
+async def read_sections_by_product_id(
+    db: db_dependency,
+    parent_product_id: int,
+):
+    section_models = (
+        db.query(Section)
+        .options(joinedload(Section.child))
+        .filter(Section.parent_product_id == parent_product_id)
+        .all()
+    )
+    if section_models is None:
+        raise HTTPException(status_code=404, detail="Section not found.")
+    sections = {}
+    for section_type in SectionType._member_names_:
+        sections[section_type] = []
+    for model in section_models:
+        if model.child:
+            section = SectionType(model.section_type).name
+            sections[section].append(model.child)
+    return sections
