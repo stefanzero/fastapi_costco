@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, noload, joinedload
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from src.models import Product, Aisle
+from src.models import Product, Aisle, Section, SectionType
 from src.database import SessionLocal
 from box import BoxList
 
@@ -58,54 +58,33 @@ async def read_products(db: db_dependency):
 async def read_product(
     db: db_dependency, product_id: int = Path(gt=0), with_sections: bool = False
 ):
-    if not with_sections:
-        product_model = (
-            db.query(Product)
-            .options(noload("*"))
-            .filter(Product.product_id == product_id)
-            .first()
-        )
-    else:
-        product_model = (
-            db.query(Product)
-            .options(joinedload(Product.featured_products))
-            .options(joinedload(Product.related_items))
-            .options(joinedload(Product.often_bought_with))
-            .filter(Product.product_id == product_id)
-            .first()
-        )
-        featured_product_ids = [
-            x.child_product_id for x in BoxList(product_model.featured_products)
-        ]
-        related_item_ids = [
-            x.child_product_id for x in BoxList(product_model.related_items)
-        ]
-        often_bought_with_ids = [
-            x.child_product_id for x in BoxList(product_model.often_bought_with)
-        ]
-        sections = {
-            "featured_products": (
-                db.query(Product)
-                .filter(Product.product_id.in_(featured_product_ids))
-                .all()
-            ),
-            "related_items": (
-                db.query(Product).filter(Product.product_id.in_(related_item_ids)).all()
-            ),
-            "often_bought_with": (
-                db.query(Product)
-                .filter(Product.product_id.in_(often_bought_with_ids))
-                .all()
-            ),
-        }
-        for section in sections.values():
-            for product in section:
-                product.href
-        setattr(product_model, "sections", sections)
-
+    product_model = (
+        db.query(Product)
+        .options(noload("*"))
+        .filter(Product.product_id == product_id)
+        .first()
+    )
     if product_model is None:
         raise HTTPException(status_code=404, detail="Product not found.")
+
     product_model.href
+    if with_sections:
+        section_models = (
+            db.query(Section)
+            .options(joinedload(Section.child))
+            .filter(Section.parent_product_id == product_id)
+            .all()
+        )
+        if section_models is None:
+            raise HTTPException(status_code=404, detail="Section not found.")
+        sections = {}
+        for section_type in SectionType._member_names_:
+            sections[section_type] = []
+        for model in section_models:
+            if model.child:
+                section = SectionType(model.section_type).name
+                sections[section].append(model.child)
+            setattr(product_model, "sections", sections)
     product_model.remove_section_relationships()
     return product_model
 
