@@ -29,6 +29,7 @@
     "--max-line-length=80"
   ],
   "cSpell.words": [
+    "backref",
     "costco",
     "joinedload",
     "noload",
@@ -36,5 +37,18 @@
     "product_details",
     "pydantic",
     "uvicorn"
-  ]
+  ],
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "driver": "SQLite",
+      "name": "testdb",
+      "database": "${workspaceFolder:costco}/testdb.db"
+    }
+  ],
+  "python.testing.pytestArgs": [
+    "src"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
 }

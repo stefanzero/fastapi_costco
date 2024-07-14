@@ -72,23 +72,26 @@ async def read_department(
             .filter(Department.department_id == department_id)
             .first()
         )
-        if hasattr(department_model, "aisles"):
-            delattr(department_model, "aisles")
+        # if hasattr(department_model, "aisles"):
+        #     delattr(department_model, "aisles")
     if department_model is None:
         raise HTTPException(status_code=404, detail="Department not found.")
     department_model.href
     if hasattr(department_model, "aisles"):
-        aisles: list[Aisle] = department_model.aisles
-        for aisle in aisles:
-            aisle.href
-            if hasattr(aisle, "products"):
-                if not with_aisles_and_products:
-                    delattr(aisle, "products")
-                else:
-                    products: list[Product] = aisle.products
-                    for product in products:
-                        product.href
-                        product.remove_section_relationships()
+        if not (with_aisles or with_aisles_and_products):
+            delattr(department_model, "aisles")
+        else:
+            aisles: list[Aisle] = department_model.aisles
+            for aisle in aisles:
+                aisle.href
+                if hasattr(aisle, "products"):
+                    if not with_aisles_and_products:
+                        delattr(aisle, "products")
+                    else:
+                        products: list[Product] = aisle.products
+                        for product in products:
+                            product.href
+                            product.remove_section_relationships()
     return department_model
 
 

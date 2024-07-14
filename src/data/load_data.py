@@ -10,7 +10,8 @@ Box is a subclass of dict which overrides some base functionality
 to make sure everything stored in the dict can be accessed as an 
 attribute or key value.
 """
-from src.database import Session
+# from src.database import Session
+from src.database import SessionLocal as Session
 from src.models import Aisle, Department, Product, Section, SectionType
 
 root_path = os.path.dirname(__file__)

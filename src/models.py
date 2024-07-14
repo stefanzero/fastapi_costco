@@ -8,11 +8,11 @@ from sqlalchemy import (
     ForeignKey,
     Enum,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
 from box import BoxList
 from typing import Self
 
-from .database import Base
+from src.database import Base
 
 
 @enum.unique
@@ -34,7 +34,12 @@ class Department(Base):
     department_id: Mapped[int] = mapped_column(unique=True, index=True)
     name: Mapped[str] = mapped_column()
     rank: Mapped[int] = mapped_column()
-    aisles = relationship("Aisle", back_populates="department")
+    aisles = relationship(
+        "Aisle",
+        order_by="Aisle.rank",
+        back_populates="department",
+        cascade="all, delete",
+    )
 
     def __repr__(self):
         return f"Department: {self.name}, department_id: {self.department_id}"
@@ -54,12 +59,21 @@ class Aisle(Base):
     rank: Mapped[str] = mapped_column(Integer)
     department_id: Mapped[int] = mapped_column(
         "department_id",
-        Integer(),
-        ForeignKey("departments.department_id"),
+        Integer,
+        ForeignKey(
+            "departments.department_id",
+            ondelete="CASCADE",
+        ),
         nullable=False,
     )
+    # department = relationship(Department, back_populates="aisles", cascade="all,delete")
     department = relationship(Department, back_populates="aisles")
-    products = relationship("Product")
+    # department = relationship(Department, back_populates="aisles", ondelete="CASCADE")
+    # parent = relationship(Parent, backref=backref("children", cascade="all,delete"))
+    # department = relationship(
+    #     Department, backref=backref("aisles", cascade="all,delete")
+    # )
+    products = relationship("Product", order_by="Product.rank", cascade="all, delete")
 
     def __repr__(self):
         return f"Aisle: {self.name}, aisle_id: {self.aisle_id}"
@@ -84,9 +98,17 @@ class Product(Base):
     affix: Mapped[str] = mapped_column()
     price_per: Mapped[str] = mapped_column()
     aisle_id: Mapped[str] = mapped_column(
-        "aisle_id", Integer(), ForeignKey("aisles.aisle_id"), nullable=False
+        "aisle_id",
+        Integer(),
+        ForeignKey(
+            "aisles.aisle_id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
     )
+    # aisle = relationship(Aisle, back_populates="products", cascade="all,delete")
     aisle = relationship(Aisle, back_populates="products")
+    # aisle = relationship(Aisle, backref=backref("products", cascade="all,delete"))
     featured_products = relationship(
         "Section",
         primaryjoin=f"and_(\
@@ -94,6 +116,7 @@ class Product(Base):
                 Section.section_type == 'featured_products',\
             )",
         viewonly=True,
+        # cascade="all, delete",
     )
     related_items = relationship(
         "Section",
@@ -102,6 +125,7 @@ class Product(Base):
                 Section.section_type == 'related_items',\
             )",
         viewonly=True,
+        # cascade="all, delete",
     )
     often_bought_with = relationship(
         "Section",
@@ -110,6 +134,7 @@ class Product(Base):
                 Section.section_type == 'often_bought_with',\
             )",
         viewonly=True,
+        # cascade="all, delete",
     )
 
     def __repr__(self):
@@ -168,17 +193,31 @@ class Section(Base):
     )
     parent_product_id: Mapped[int] = mapped_column(
         "parent_product_id",
-        Integer(),
-        ForeignKey("products.product_id"),
+        Integer,
+        ForeignKey(
+            "products.product_id",
+            ondelete="CASCADE",
+        ),
         nullable=False,
         primary_key=True,
     )
     child_product_id: Mapped[int] = mapped_column(
         "child_product_id",
-        Integer(),
-        ForeignKey("products.product_id"),
+        Integer,
+        ForeignKey(
+            "products.product_id",
+            ondelete="CASCADE",
+        ),
         nullable=False,
         primary_key=True,
     )
-    parent = relationship(Product, primaryjoin=Product.product_id == parent_product_id)
-    child = relationship(Product, primaryjoin=Product.product_id == child_product_id)
+    parent = relationship(
+        Product,
+        primaryjoin=Product.product_id == parent_product_id,
+        cascade="all,delete",
+    )
+    child = relationship(
+        Product,
+        primaryjoin=Product.product_id == child_product_id,
+        cascade="all,delete",
+    )
