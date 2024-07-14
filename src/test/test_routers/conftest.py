@@ -2,42 +2,20 @@ import pytest
 import json
 from typing import Generator
 from sqlalchemy.orm.session import Session
-from sqlalchemy import inspect
 from box import Box, BoxList
 
 from src.models import Department, Aisle, Product, Section, SectionType
 from src.database import Base
 
-department_data = Box({"name": "Electronics", "rank": 1, "department_id": 999})
-
-
-def to_dict(obj):
-    # return json.loads(json.dumps(obj, default=lambda o: o.__dict__))
-    obj_dict = json.loads(json.dumps(obj, default=lambda o: o.__dict__))
-    return obj_dict
-
 
 # vars(row).keys().filter(lambda x: not x.startswith('_'))
 def row_to_dict(row):
     dict_ = {}
-    i = inspect(row)
-    # keys = row.__mapper__.c.keys()
-    # keys = vars(row).keys().filter(lambda x: not x.startswith("_"))
+    # use vars to include computed properties
     keys = [key for key in vars(row).keys() if not key.startswith("_")]
     for key in keys:
         value = getattr(row, key)
         dict_[key] = value
-    # for key in i.mapper.relationships.keys():
-    #     value = getattr(row, key)
-    #     if isinstance(value, Base):
-    #         value = row_to_dict(value)
-    #         dict_[key] = value
-    #     elif isinstance(value, list):
-    #         values = []
-    #         for v in value:
-    #             v_dict = row_to_dict(v)
-    #             values.append(v_dict)
-    #         dict_[key] = values
     return dict_
 
 
@@ -222,35 +200,3 @@ def test_departments(db: Session) -> Generator[BoxList[Department], None, None]:
 
     yield departments
     tear_down_department(db)
-
-
-@pytest.fixture(scope="function")
-def test_product(db: Session) -> Generator[Box[Product], None, None]:
-    department_ids = sorted(test_data.departments.keys())
-    department = test_data.departments[department_ids[0]]
-    aisle_ids = sorted(department.aisles.keys())
-    aisle = department.aisles[aisle_ids[0]]
-    product_ids = sorted(aisle.products.keys())
-    product = aisle.products[product_ids[0]]
-    product.aisle_id = aisle.aisle_id
-    return add_product(product, db)
-
-
-def add_product(product: dict, db: Session) -> Box:
-    product_model = Product(
-        product_id=product.product_id,
-        name=product.name,
-        size=product.size,
-        src=product.src,
-        alt=product.alt,
-        rank=product.rank,
-        price=product.price,
-        price_per=product.price_per,
-        affix=product.affix,
-        aisle_id=product.aisle_id,
-    )
-    db.add(product_model)
-    db.commit()
-    product_model.href
-    product_box = Box(row_to_dict(product_model))
-    return product_box
