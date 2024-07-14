@@ -1,18 +1,9 @@
 from fastapi import status
-import json
 from box import Box
 
-# from src.test.test_routers.conftest import department_data
-
-
-# def test_read_department(client, test_department):
-#     response = client.get(f"/departments/{test_department.department_id}")
-#     assert response.status_code == status.HTTP_200_OK
-
-
-# def test_read_department_not_found(client):
-#     response = client.get(f"/departments/{department_data.department_id}")
-#     assert response.status_code == status.HTTP_404_NOT_FOUND
+def test_read_department_not_found(client):
+    response = client.get(f"/departments/1")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 def test_read_department(client, test_departments: Box):

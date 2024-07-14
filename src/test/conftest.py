@@ -40,7 +40,7 @@ def db(db_url=SQLALCHEMY_DATABASE_URL):
     # Create a SQLAlchemy engine
     engine = create_engine(
         db_url,
-        connect_args={"check_same_thread": False},
+        # connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
 

@@ -4,24 +4,13 @@ from sqlalchemy.orm import Session, noload, joinedload
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
 from src.models import Product, Aisle, Section, SectionType
-from src.database import SessionLocal
-from box import BoxList
-
-# from .auth import get_current_user
+from src.database import get_db
 
 router = APIRouter(
     #
     prefix="/products",
     tags=["products"],
 )
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 db_dependency = Annotated[Session, Depends(get_db)]
@@ -86,6 +75,8 @@ async def read_product(
                 sections[section].append(model.child)
             setattr(product_model, "sections", sections)
     product_model.remove_section_relationships()
+    if hasattr(product_model, "aisle"):
+        delattr(product_model, "aisle")
     return product_model
 
 

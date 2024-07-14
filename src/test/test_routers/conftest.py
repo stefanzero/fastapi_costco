@@ -152,7 +152,7 @@ def tear_down_department(db: Session):
 
 
 @pytest.fixture
-def test_departments(db: Session) -> Generator[list[Department], None, None]:
+def test_departments(db: Session) -> Generator[BoxList[Department], None, None]:
     departments = BoxList()
     for department in test_data.departments.values():
         department_model = Department(
@@ -222,3 +222,35 @@ def test_departments(db: Session) -> Generator[list[Department], None, None]:
 
     yield departments
     tear_down_department(db)
+
+
+@pytest.fixture(scope="function")
+def test_product(db: Session) -> Generator[Box[Product], None, None]:
+    department_ids = sorted(test_data.departments.keys())
+    department = test_data.departments[department_ids[0]]
+    aisle_ids = sorted(department.aisles.keys())
+    aisle = department.aisles[aisle_ids[0]]
+    product_ids = sorted(aisle.products.keys())
+    product = aisle.products[product_ids[0]]
+    product.aisle_id = aisle.aisle_id
+    return add_product(product, db)
+
+
+def add_product(product: dict, db: Session) -> Box:
+    product_model = Product(
+        product_id=product.product_id,
+        name=product.name,
+        size=product.size,
+        src=product.src,
+        alt=product.alt,
+        rank=product.rank,
+        price=product.price,
+        price_per=product.price_per,
+        affix=product.affix,
+        aisle_id=product.aisle_id,
+    )
+    db.add(product_model)
+    db.commit()
+    product_model.href
+    product_box = Box(row_to_dict(product_model))
+    return product_box
