@@ -16,33 +16,33 @@ def test_read_department_not_found(client):
 
 
 def test_read_department(client, test_departments: Box):
-    department = test_departments[0]
-    delattr(department, "aisles")
-    department_id = department.department_id
+    expected_department = test_departments[0]
+    delattr(expected_department, "aisles")
+    department_id = expected_department.department_id
     response = client.get(f"/departments/{department_id}?with_aisles=false")
     assert response.status_code == status.HTTP_200_OK
-    response_department = Box(response.json())
-    assert response_department == department
+    actual_department = Box(response.json())
+    assert actual_department == expected_department
 
 
 def test_read_department_with_aisles(client, test_departments: Box):
-    department = test_departments[0]
-    for aisle in department.aisles:
+    expected_department = test_departments[0]
+    for aisle in expected_department.aisles:
         delattr(aisle, "products")
-    department_id = department.department_id
+    department_id = expected_department.department_id
     response = client.get(f"/departments/{department_id}?with_aisles=true")
     assert response.status_code == status.HTTP_200_OK
-    response_department = Box(response.json())
-    assert response_department == department
-    assert len(response_department.aisles) == 2
+    actual_department = Box(response.json())
+    assert actual_department == expected_department
+    assert len(actual_department.aisles) == 2
 
 
 def test_read_department_with_aisles_and_products(client, test_departments: Box):
-    department = test_departments[0]
-    department_id = department.department_id
+    expected_department = test_departments[0]
+    department_id = expected_department.department_id
     response = client.get(f"/departments/{department_id}?with_aisles_and_products=true")
     assert response.status_code == status.HTTP_200_OK
-    response_department = Box(response.json())
-    assert response_department == department
-    assert len(response_department.aisles) == 2
-    assert len(response_department.aisles[0].products) == 2
+    actual_department = Box(response.json())
+    assert actual_department == expected_department
+    assert len(actual_department.aisles) == 2
+    assert len(actual_department.aisles[0].products) == 2
