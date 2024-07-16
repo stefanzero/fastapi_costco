@@ -14,7 +14,7 @@ SQLALCHEMY_DATABASE_URL = "sqlite:///./testdb.db"
 
 
 @pytest.fixture(scope="function")
-def db(db_url=SQLALCHEMY_DATABASE_URL):
+def db(db_url=SQLALCHEMY_DATABASE_URL) -> Generator[Session, None, None]:
     """Create a new database session with a rollback at the end of the test."""
     # Create a SQLAlchemy engine
     engine = create_engine(
