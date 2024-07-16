@@ -1,5 +1,14 @@
 from fastapi import status
-from box import Box
+from box import Box, BoxList
+import json
+
+
+def test_read_departments(client, test_departments: Box):
+    response = client.get(f"/departments/")
+    assert response.status_code == status.HTTP_200_OK
+    departments = BoxList(response.json())
+    assert len(departments) == 2
+
 
 def test_read_department_not_found(client):
     response = client.get(f"/departments/1")

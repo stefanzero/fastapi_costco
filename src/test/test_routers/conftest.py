@@ -106,19 +106,20 @@ test_data = Box(
                         },
                     },
                 },
-            }
+            },
+            "2": {"department_id": 2, "name": "Electronics", "rank": 2, "aisles": {}},
         }
     }
 )
 
 
-@pytest.fixture
-def test_department(db: Session) -> Generator[Department, None, None]:
-    department = Department(**department_data)
-    db.add(department)
-    db.commit()
-    yield department
-    tear_down_department(db)
+# @pytest.fixture
+# def test_department(db: Session) -> Generator[Department, None, None]:
+#     department = Department(**department_data)
+#     db.add(department)
+#     db.commit()
+#     yield department
+#     tear_down_department(db)
 
 
 def tear_down_department(db: Session):
@@ -142,7 +143,7 @@ def test_departments(db: Session) -> Generator[BoxList[Department], None, None]:
         db.commit()
         department_model.href
         department_box = Box(row_to_dict(department_model))
-        department_box.aisles = BoxList()
+        department_box.aisles = BoxList([])
         for aisle in department.aisles.values():
             aisle_model = Aisle(
                 aisle_id=aisle.aisle_id,
