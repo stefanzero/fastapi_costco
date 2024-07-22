@@ -63,6 +63,15 @@ def test_create_department(client: TestClient, db: Session):
         assert getattr(actual_department, key) == value
 
 
+def test_create_department_conflict(
+    client: TestClient, db: Session, test_departments: Box
+):
+    department_id = test_departments[0].department_id
+    request_data = {"department_id": department_id, "name": "Wines", "rank": 1}
+    response = client.post("/departments", json=request_data)
+    assert response.status_code == status.HTTP_409_CONFLICT
+
+
 def test_update_department(
     test_departments: BoxList[Department], client: TestClient, db: Session
 ):

@@ -91,12 +91,12 @@ class Product(Base):
     name: Mapped[str] = mapped_column(unique=True)
     rank: Mapped[int] = mapped_column()
     product_id: Mapped[int] = mapped_column(unique=True)
-    size: Mapped[str] = mapped_column()
-    src: Mapped[str] = mapped_column()
-    alt: Mapped[str] = mapped_column()
-    price: Mapped[str] = mapped_column()
-    affix: Mapped[str] = mapped_column()
-    price_per: Mapped[str] = mapped_column()
+    size: Mapped[str] = mapped_column(nullable=True)
+    src: Mapped[str] = mapped_column(nullable=True)
+    alt: Mapped[str] = mapped_column(nullable=True)
+    price: Mapped[str] = mapped_column(nullable=True)
+    affix: Mapped[str] = mapped_column(nullable=True)
+    price_per: Mapped[str] = mapped_column(nullable=True)
     aisle_id: Mapped[str] = mapped_column(
         "aisle_id",
         Integer(),

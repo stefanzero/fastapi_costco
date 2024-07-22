@@ -32,7 +32,7 @@ def add_href(models: list[BaseModel]) -> None:
 
 
 class DepartmentRequest(BaseModel):
-    department_id: int = Field()
+    department_id: int = Field(ge=0)
     name: str = Field()
     rank: int = Field()
 
@@ -98,6 +98,15 @@ async def read_department(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_department(db: db_dependency, department_request: DepartmentRequest):
     department_model = Department(**department_request.model_dump())
+    department_id = department_model.department_id
+    department = (
+        db.query(Department).filter(Department.department_id == department_id).first()
+    )
+    if department:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot create department.  Department already exists with department_id {department_id}",
+        )
     db.add(department_model)
     db.commit()
     db.refresh(department_model)

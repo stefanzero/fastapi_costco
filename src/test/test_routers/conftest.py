@@ -130,8 +130,7 @@ def tear_down_department(db: Session):
     print(len(sections))
 
 
-@pytest.fixture
-def test_departments(db: Session) -> Generator[BoxList[Department], None, None]:
+def insert_departments(db: Session):
     departments = BoxList()
     for department in test_data.departments.values():
         department_model = Department(
@@ -176,28 +175,47 @@ def test_departments(db: Session) -> Generator[BoxList[Department], None, None]:
                 aisle_box.products.append(product_box)
             department_box.aisles.append(aisle_box)
         departments.append(department_box)
+    return departments
+
+
+@pytest.fixture
+def test_departments_data() -> Generator[Box[Department], None, None]:
+    yield test_data.departments
+
+
+@pytest.fixture
+def test_departments(db: Session) -> Generator[BoxList[Department], None, None]:
+    departments = insert_departments(db)
+    yield departments
+    # tear_down_department(db)
+
+
+@pytest.fixture
+def test_departments_with_sections(
+    db: Session,
+) -> Generator[BoxList[Department], None, None]:
+    departments = insert_departments(db)
+
     # all products must be added before sections can reference them
     # the sections should only be returned from creating a product fixture
-    # for department in test_data.departments.values():
-    #     for aisle in department.aisles.values():
-    #         for product in aisle.products.values():
-    #             for section, child_products in product.sections.items():
-    #                 for child_product in child_products:
-    #                     section_model = Section(
-    #                         section_type=SectionType(section),
-    #                         parent_product_id=product.product_id,
-    #                         child_product_id=child_product.product_id,
-    #                     )
-    #                     db.add(section_model)
-    #                     db.commit()
+    for department in test_data.departments.values():
+        for aisle in department.aisles.values():
+            for product in aisle.products.values():
+                for section, child_products in product.sections.items():
+                    for child_product in child_products:
+                        section_model = Section(
+                            section_type=SectionType(section),
+                            parent_product_id=product.product_id,
+                            child_product_id=child_product.product_id,
+                        )
+                        db.add(section_model)
+                        db.commit()
     # reload the data
-    # for department in test_data.departments.values():
-    #     department_model = (
-    #         db.query(Department)
-    #         .filter(Department.department_id == department.department_id)
-    #         .first()
-    #     )
-    #     departments.append(Box(row_to_dict(department_model)))
-
+    for department in test_data.departments.values():
+        department_model = (
+            db.query(Department)
+            .filter(Department.department_id == department.department_id)
+            .first()
+        )
+        departments.append(Box(row_to_dict(department_model)))
     yield departments
-    tear_down_department(db)

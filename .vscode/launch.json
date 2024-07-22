@@ -38,7 +38,7 @@
       "request": "launch",
       "module": "pytest",
       "args": "${file}",
-      "justMyCode": true
+      "justMyCode": false
     },
     {
       "name": "PyTest File",
