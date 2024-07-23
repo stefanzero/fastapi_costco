@@ -113,15 +113,6 @@ test_data = Box(
 )
 
 
-# @pytest.fixture
-# def test_department(db: Session) -> Generator[Department, None, None]:
-#     department = Department(**department_data)
-#     db.add(department)
-#     db.commit()
-#     yield department
-#     tear_down_department(db)
-
-
 def tear_down_department(db: Session):
     db.query(Department).delete()
     db.commit()
@@ -179,7 +170,7 @@ def insert_departments(db: Session):
 
 
 @pytest.fixture
-def test_departments_data() -> Generator[Box[Department], None, None]:
+def test_departments_data() -> Generator[Box, None, None]:
     yield test_data.departments
 
 

@@ -3,8 +3,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, noload, joinedload
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from src.models import Product, Aisle
-from src.database import SessionLocal
+from src.models import Product, Aisle, Department
+from src.database import SessionLocal, get_db
 
 # from .auth import get_current_user
 
@@ -13,14 +13,6 @@ router = APIRouter(
     prefix="/aisles",
     tags=["aisles"],
 )
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 db_dependency = Annotated[Session, Depends(get_db)]
@@ -52,12 +44,15 @@ async def read_aisle(
     if with_products:
         aisle_model = (
             db.query(Aisle)
+            .options(noload(Aisle.department))
             .options(joinedload(Aisle.products).noload(Product.featured_products))
             .options(joinedload(Aisle.products).noload(Product.related_items))
             .options(joinedload(Aisle.products).noload(Product.often_bought_with))
             .filter(Aisle.aisle_id == aisle_id)
             .first()
         )
+        for product in aisle_model.products:
+            product.href
     else:
         aisle_model = (
             db.query(Aisle)
@@ -70,6 +65,8 @@ async def read_aisle(
     if aisle_model is None:
         raise HTTPException(status_code=404, detail="Aisle not found.")
     aisle_model.href
+    # TODO: remove join from load
+    delattr(aisle_model, "department")
     if hasattr(aisle_model, "products"):
         products: list[Product] = aisle_model.products
         for product in products:
@@ -79,9 +76,17 @@ async def read_aisle(
 
 @router.get("/by_department/{department_id}", status_code=status.HTTP_200_OK)
 async def read_aisles_by_department(db: db_dependency, department_id: int = Path(gt=0)):
-    aisles = db.query(Aisle).filter(Aisle.department_id == department_id).all()
+    aisles = (
+        db.query(Aisle)
+        .options(noload("*"))
+        .filter(Aisle.department_id == department_id)
+        .all()
+    )
     if not len(aisles):
         raise HTTPException(status_code=404, detail="Department not found.")
+    for aisle in aisles:
+        delattr(aisle, "department")
+        delattr(aisle, "products")
     add_href(aisles)
     return aisles
 
@@ -89,6 +94,22 @@ async def read_aisles_by_department(db: db_dependency, department_id: int = Path
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_aisle(db: db_dependency, aisle_request: AisleRequest):
     aisle_model = Aisle(**aisle_request.model_dump())
+    aisle_id = aisle_model.aisle_id
+    aisle = db.query(Aisle).filter(Aisle.aisle_id == aisle_id).first()
+    if aisle:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot create aisle.  Aisle already exists with aisle_id {aisle_id}",
+        )
+    department_id = aisle_model.department_id
+    department = (
+        db.query(Department).filter(Department.department_id == department_id).first()
+    )
+    if not department:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Cannot create aisle.  Department not found with department_id {department_id}",
+        )
     db.add(aisle_model)
     db.commit()
     db.refresh(aisle_model)
@@ -105,9 +126,16 @@ async def update_aisle(
     aisle_model.name = aisle_request.name
     aisle_model.aisle_id = aisle_request.aisle_id
     aisle_model.rank = aisle_request.rank
-    aisle_model.price = aisle_request.price
     aisle_model.department_id = aisle_request.department_id
-
+    department_id = aisle_model.department_id
+    department = (
+        db.query(Department).filter(Department.department_id == department_id).first()
+    )
+    if not department:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Cannot update aisle.  Department not found with department_id {department_id}",
+        )
     db.add(aisle_model)
     db.commit()
     db.refresh(aisle_model)

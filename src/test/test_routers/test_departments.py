@@ -8,8 +8,13 @@ from src.models import Department
 def test_read_departments(client: TestClient, test_departments: BoxList[Department]):
     response = client.get(f"/departments/")
     assert response.status_code == status.HTTP_200_OK
-    departments = BoxList(response.json())
-    assert len(departments) == 2
+    actual_departments = BoxList(response.json())
+    expected_departments = BoxList()
+    for department in test_departments:
+        delattr(department, "aisles")
+        expected_departments.append(department)
+    assert len(actual_departments) == len(test_departments)
+    assert actual_departments == expected_departments
 
 
 def test_read_department_not_found(client: TestClient):
@@ -37,8 +42,8 @@ def test_read_department_with_aisles(
     response = client.get(f"/departments/{department_id}?with_aisles=true")
     assert response.status_code == status.HTTP_200_OK
     actual_department = Box(response.json())
+    assert len(actual_department.aisles) == len(expected_department.aisles)
     assert actual_department == expected_department
-    assert len(actual_department.aisles) == 2
 
 
 def test_read_department_with_aisles_and_products(
