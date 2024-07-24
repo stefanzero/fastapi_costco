@@ -2,7 +2,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from box import Box, BoxList
-from src.models import Aisle, Department
+from src.models import Aisle, Department, Product
 
 
 def test_read_aisles(client: TestClient, test_departments: BoxList[Department]):
@@ -170,6 +170,9 @@ def test_delete_aisle(
     assert response.status_code == status.HTTP_204_NO_CONTENT
     model = db.query(Aisle).filter(Aisle.aisle_id == aisle_id).first()
     assert model is None
+    # check cascade
+    products = db.query(Product).filter(Product.aisle_id == aisle_id).all()
+    assert len(products) == 0
 
 
 def test_delete_aisle_not_found(

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, noload, joinedload
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
 from src.models import Product, Aisle, Department
-from src.database import SessionLocal, get_db
+from src.database import get_db
 
 # from .auth import get_current_user
 

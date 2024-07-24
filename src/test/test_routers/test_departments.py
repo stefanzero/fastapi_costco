@@ -2,7 +2,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from box import Box, BoxList
-from src.models import Department
+from src.models import Department, Aisle
 
 
 def test_read_departments(client: TestClient, test_departments: BoxList[Department]):
@@ -98,13 +98,17 @@ def test_update_department_not_found(client: TestClient, db: Session):
 def test_delete_department(
     client: TestClient, test_departments: BoxList[Department], db: Session
 ):
-    department_id = test_departments[1].department_id
+    department = test_departments[0]
+    department_id = department.department_id
     response = client.delete(f"/departments/{department_id}")
     assert response.status_code == status.HTTP_204_NO_CONTENT
     model = (
         db.query(Department).filter(Department.department_id == department_id).first()
     )
     assert model is None
+    # check cascade
+    aisles = db.query(Aisle).filter(Aisle.department_id == department_id).all()
+    assert len(aisles) == 0
 
 
 def test_delete_department_not_found(client: TestClient, db: Session):

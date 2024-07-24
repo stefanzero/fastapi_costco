@@ -1,7 +1,8 @@
 import pytest
-import json
 from typing import Generator
-from sqlalchemy.orm.session import Session
+
+# from sqlalchemy.orm.session import Session
+from sqlalchemy.orm import Session, noload, joinedload
 from box import Box, BoxList
 
 from src.models import Department, Aisle, Product, Section, SectionType
@@ -43,9 +44,9 @@ test_data = Box(
                                 "price_per": "$16.69/each",
                                 "rank": 1,
                                 "sections": {
-                                    "Related Items": [{"product_id": 1002}],
                                     "Featured Products": [{"product_id": 2002}],
                                     "Often Bought With": [{"product_id": 2001}],
+                                    "Related Items": [{"product_id": 1002}],
                                 },
                             },
                             "1002": {
@@ -59,9 +60,9 @@ test_data = Box(
                                 "price_per": "$10.89/each",
                                 "rank": 2,
                                 "sections": {
-                                    "Related Items": [{"product_id": 1002}],
                                     "Featured Products": [{"product_id": 2002}],
                                     "Often Bought With": [{"product_id": 2001}],
+                                    "Related Items": [{"product_id": 1002}],
                                 },
                             },
                         },
@@ -82,9 +83,9 @@ test_data = Box(
                                 "price_per": "$19.19/each",
                                 "rank": 1,
                                 "sections": {
-                                    "Related Items": [{"product_id": 1002}],
                                     "Featured Products": [{"product_id": 2002}],
                                     "Often Bought With": [{"product_id": 2001}],
+                                    "Related Items": [{"product_id": 1002}],
                                 },
                             },
                             "2002": {
@@ -98,9 +99,9 @@ test_data = Box(
                                 "price_per": "$13.59/each",
                                 "rank": 2,
                                 "sections": {
-                                    "Related Items": [{"product_id": 1002}],
                                     "Featured Products": [{"product_id": 2002}],
                                     "Often Bought With": [{"product_id": 2001}],
+                                    "Related Items": [{"product_id": 1002}],
                                 },
                             },
                         },
@@ -121,7 +122,7 @@ def tear_down_department(db: Session):
     print(len(sections))
 
 
-def insert_departments(db: Session):
+def insert_departments(db: Session) -> BoxList:
     departments = BoxList()
     for department in test_data.departments.values():
         department_model = Department(
@@ -169,6 +170,51 @@ def insert_departments(db: Session):
     return departments
 
 
+def find_section_child(departments: BoxList, product_id: int) -> Box:
+    for department in departments:
+        for aisle in department.aisles:
+            for product in aisle.products:
+                if product.product_id == product_id:
+                    section_child = product.copy()
+                    if hasattr(section_child, "sections"):
+                        delattr(section_child, "sections")
+                    for s in SectionType:
+                        if hasattr(section_child, s.name):
+                            delattr(section_child, s.name)
+                    return section_child
+
+
+def insert_sections(db: Session, departments: BoxList) -> None:
+    # all products must be added before sections can reference them
+    # the sections should only be returned from creating a product fixture
+    for department, department_box in zip(test_data.departments.values(), departments):
+        for aisle, aisle_box in zip(department.aisles.values(), department_box.aisles):
+            for product, product_box in zip(
+                aisle.products.values(), aisle_box.products
+            ):
+                sections = {}
+                for s in SectionType:
+                    sections[s.name] = []
+                for section, child_products in sorted(product.sections.items()):
+                    for child_product in child_products:
+                        section_model = Section(
+                            section_type=SectionType(section),
+                            parent_product_id=product.product_id,
+                            child_product_id=child_product.product_id,
+                        )
+                        db.add(section_model)
+                        db.commit()
+                        section_name = SectionType(section).name
+                        section_child = find_section_child(
+                            departments=departments, product_id=child_product.product_id
+                        )
+                        sections[section_name].append(section_child)
+                sections_box = Box(sections)
+                product_box.sections = sections_box
+    # return sections
+    return departments
+
+
 @pytest.fixture
 def test_departments_data() -> Generator[Box, None, None]:
     yield test_data.departments
@@ -183,6 +229,20 @@ def test_departments(db: Session) -> Generator[BoxList[Department], None, None]:
 
 @pytest.fixture
 def test_departments_with_sections(
+    db: Session,
+) -> Generator[BoxList[Department], None, None]:
+    departments = insert_departments(db)
+    insert_sections(db, departments)
+    yield departments
+    # for department in departments:
+    #     for aisle in department.aisles:
+    #         for product in aisle.products:
+    #             parent_product_id = product.product_id
+
+
+@pytest.fixture
+def test_departments_with_sections_from_reload(
+    # def test_departments_with_sections(
     db: Session,
 ) -> Generator[BoxList[Department], None, None]:
     departments = insert_departments(db)
@@ -201,12 +261,59 @@ def test_departments_with_sections(
                         )
                         db.add(section_model)
                         db.commit()
+
     # reload the data
+    department_list = BoxList()
     for department in test_data.departments.values():
         department_model = (
             db.query(Department)
+            .options(
+                #
+                joinedload(Department.aisles).options(
+                    #
+                    joinedload(Aisle.products).options(
+                        #
+                        joinedload(
+                            #
+                            Product.featured_products,
+                        ),
+                        joinedload(
+                            #
+                            Product.often_bought_with,
+                        ),
+                        joinedload(
+                            #
+                            Product.related_items,
+                        ),
+                    )
+                )
+            )
+            # .options(joinedload(Section.child))
+            # .options(joinedload(Department.aisles.products.featured_products))
+            # .options(joinedload(Department.aisles.products.related_items))
+            # .options(joinedload(Department.aisles.products.often_bought_with))
             .filter(Department.department_id == department.department_id)
             .first()
         )
-        departments.append(Box(row_to_dict(department_model)))
-    yield departments
+        department_list.append(Box(row_to_dict(department_model)))
+    # convert sections to Boxes
+    for department in department_list:
+        aisles_box = BoxList()
+        for aisle in department.aisles:
+            products_box = BoxList()
+            for product in aisle.products:
+                product_box = Box(row_to_dict(product))
+                product_box.sections = Box(
+                    {
+                        #
+                        "featured_products": BoxList(product.featured_products),
+                        "often_bought_with": BoxList(product.often_bought_with),
+                        "related_items": BoxList(product.related_items),
+                    }
+                )
+                products_box.append(product_box)
+            aisle_box = Box(row_to_dict(aisle))
+            aisle_box.products = products_box
+            aisles_box.append(aisle_box)
+        department.aisles = aisles_box
+    yield department_list

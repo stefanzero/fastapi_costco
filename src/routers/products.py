@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, noload, joinedload
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from src.models import Product, Aisle, Section, SectionType
+from src.models import Product, Aisle, Section, SectionType, ProductBase
 from src.database import get_db
 
 router = APIRouter(
@@ -73,7 +73,7 @@ async def read_product(
     db: db_dependency, product_id: int = Path(gt=0), with_sections: bool = False
 ):
     product_model = (
-        db.query(Product)
+        db.query(ProductBase)
         .options(noload("*"))
         .filter(Product.product_id == product_id)
         .first()
@@ -83,11 +83,12 @@ async def read_product(
 
     product_model.href
     if with_sections:
+        # rank for the sections should be a member of the sections table
+        # and sections loaded with order_by rank
         section_models = (
             db.query(Section)
-            .options(joinedload(Section.child))
-            .filter(Section.parent_product_id == product_id)
-            .all()
+            # .options(joinedload(Section.child))
+            .filter(Section.parent_product_id == product_id).all()
         )
         if section_models is None:
             raise HTTPException(status_code=404, detail="Section not found.")
@@ -96,10 +97,10 @@ async def read_product(
             sections[section_type] = []
         for model in section_models:
             if model.child:
+                model.child.href
                 section = SectionType(model.section_type).name
                 sections[section].append(model.child)
-            setattr(product_model, "sections", sections)
-    product_model.remove_section_relationships()
+        setattr(product_model, "sections", sections)
     if hasattr(product_model, "aisle"):
         delattr(product_model, "aisle")
     return product_model
@@ -148,9 +149,6 @@ async def update_product(
     db: db_dependency, product_request: ProductRequest, product_id: int = Path(gt=0)
 ):
     product_model = get_product(product_id=product_id, db=db)
-    # product_model = db.query(Product).filter(Product.product_id == product_id).first()
-    # if product_model is None:
-    #     raise HTTPException(status_code=404, detail="Product not found.")
     aisle_id = product_request.aisle_id
     ensure_aisle_exists(aisle_id=aisle_id, db=db)
 

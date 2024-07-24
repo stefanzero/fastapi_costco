@@ -1,3 +1,4 @@
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -39,6 +40,7 @@ def test_read_product_not_found(client: TestClient, test_departments_data):
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
+# @pytest.mark.skip(reason="Fix infinite recursion on section.child")
 def test_read_product_with_sections(
     client: TestClient, test_departments_with_sections: BoxList
 ):
@@ -47,7 +49,7 @@ def test_read_product_with_sections(
     expected_product = expected_aisle.products[0]
     expected_product.aisle_id = expected_aisle.aisle_id
     product_id = expected_product.product_id
-    response = client.get(f"/products/{product_id}")
+    response = client.get(f"/products/{product_id}?with_sections=true")
     assert response.status_code == status.HTTP_200_OK
     actual_product = Box(response.json())
     assert actual_product == expected_product
@@ -300,4 +302,3 @@ def test_delete_product_not_found(
     product = aisle.products[product_ids[0]]
     response = client.delete(f"/products/{product.product_id}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    

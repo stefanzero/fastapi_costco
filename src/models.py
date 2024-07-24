@@ -9,6 +9,7 @@ from sqlalchemy import (
     Enum,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
+from sqlalchemy_serializer import SerializerMixin
 from box import BoxList
 from typing import Self
 
@@ -84,7 +85,7 @@ class Aisle(Base):
         return f"costco/departments/{self.department_id}/aisles/{self.aisle_id}"
 
 
-class Product(Base):
+class ProductBase(Base):
     __tablename__ = "products"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -106,6 +107,35 @@ class Product(Base):
         ),
         nullable=False,
     )
+
+    # serialize_rules = (
+    #     #
+    #     "-section.child",
+    #     "-section. #parent",
+    #     "-featured_products.child",
+    #     "-featured_products.parent",
+    #     "-often_bought_with.child",
+    #     "-often_bought_with.parent",
+    #     "-related_items.child",
+    #     "-related_items.parent",
+    #     "-sections['featured_products'].child",
+    #     "-sections['featured_products'].parent",
+    #     "-sections['often_bought_with'].child",
+    #     "-sections['often_bought_with'].parent",
+    #     "-sections['related_items'].child",
+    #     "-sections['related_items'].parent",
+    # )
+
+    def __repr__(self):
+        return f"Product: {self.name}, product_id: {self.product_id}"
+
+    @computed_field
+    @cached_property
+    def href(self):
+        return f"/store/items/item{self.product_id}"
+
+
+class Product(ProductBase):
     # aisle = relationship(Aisle, back_populates="products", cascade="all,delete")
     aisle = relationship(Aisle, back_populates="products")
     # aisle = relationship(Aisle, backref=backref("products", cascade="all,delete"))
@@ -136,14 +166,6 @@ class Product(Base):
         viewonly=True,
         # cascade="all, delete",
     )
-
-    def __repr__(self):
-        return f"Product: {self.name}, product_id: {self.product_id}"
-
-    @computed_field
-    @cached_property
-    def href(self):
-        return f"/store/items/item{self.product_id}"
 
     @computed_field
     @cached_property
@@ -180,6 +202,8 @@ class Product(Base):
     def remove_section_relationships(self) -> None:
         for member in SectionType:
             name = member.name
+            if hasattr(self, name):
+                delattr(self, name)
             if name in self.__dict__:
                 self.__dict__.pop(member.name)
 
@@ -212,12 +236,26 @@ class Section(Base):
         primary_key=True,
     )
     parent = relationship(
-        Product,
+        ProductBase,
         primaryjoin=Product.product_id == parent_product_id,
         cascade="all,delete",
     )
     child = relationship(
-        Product,
+        ProductBase,
         primaryjoin=Product.product_id == child_product_id,
         cascade="all,delete",
     )
+
+    # serialize_rules = (
+    #     #
+    #     # "-product.child",
+    #     # "-product.parent",
+    #     "-featured_products.child",
+    #     "-featured_products.parent",
+    #     "-often_bought_with.child",
+    #     "-often_bought_with.parent",
+    #     "-related_items.child",
+    #     "-related_items.parent",
+    #     # "-products.often_bought_with",
+    #     # "-products.related_items",
+    # )
